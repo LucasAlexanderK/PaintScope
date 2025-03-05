@@ -1,19 +1,23 @@
-FROM eclipse-temurin:17-jdk-alpine as build
-WORKDIR /workspace/app
+# Use an appropriate base image with Java and necessary build tools
+FROM openjdk:17-jdk-slim
 
-# Copy gradle files
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle.kts  .
-COPY settings.gradle.kts .
-COPY src src
+# Set the working directory in the container
+WORKDIR /app
 
-# Build the application
-RUN chmod +x ./gradlew
-RUN ./gradlew bootJar -x test
+# Copy the Gradle wrapper and set executable permission
+COPY gradlew . 
+COPY gradle gradle 
+RUN chmod +x gradlew
 
-# Create the final image
-FROM eclipse-temurin:17-jre-alpine
-VOLUME /tmp
-COPY --from=build /workspace/app/build/libs/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+# Copy the rest of the project
+COPY . .
+
+# Ensure gradlew has execution permissions before running it
+RUN ls -l gradlew  # Debugging: Check if it's executable
+RUN chmod +x gradlew
+RUN ./gradlew clean bootJar
+
+RUN cp build/libs/*.jar app.jar
+
+# Specify the command to run your application
+ENTRYPOINT ["java", "-jar", "app.jar"]
